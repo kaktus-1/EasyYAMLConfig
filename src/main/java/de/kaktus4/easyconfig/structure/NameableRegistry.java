@@ -1,4 +1,4 @@
-package de.kaktus4.rpg.structure;
+package de.kaktus4.easyconfig.structure;
 
 public class NameableRegistry<t extends INameable> extends Registry<t> {
 

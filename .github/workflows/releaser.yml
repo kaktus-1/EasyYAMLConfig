@@ -45,10 +45,6 @@ jobs:
           VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Replace revision in pom.xml files
-        run: |
-          find . -name pom.xml -exec sed -i "s/\${revision}/${{ steps.version.outputs.version }}/g" {} \;
-
       - name: Build Modules
         run: |
           mvn -B clean install -DskipTests
@@ -56,10 +52,7 @@ jobs:
 
       - name: Deploy API Module to Repo
         run: |
-          # Deploy Parent POM (ohne Module)
           mvn -B deploy -N -DskipTests
-          # Deploy Child-Modul
-          mvn -B deploy -pl ORMAPI-API -DskipTests
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
@@ -67,5 +60,4 @@ jobs:
           tag_name: "v${{ steps.version.outputs.version }}"
           name: "Release v${{ steps.version.outputs.version }}"
           files: |
-            ORMAPI-API/target/ORMAPI-API-${{ steps.version.outputs.version }}.jar
-            ORMAPI-Paper/target/ORMAPI-Paper-${{ steps.version.outputs.version }}.jar
+            EasyYAMLConfig/target/EasyYAMLConfig-${{ steps.version.outputs.version }}.jar
