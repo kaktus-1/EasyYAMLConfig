@@ -1,0 +1,71 @@
+name: "Build, Deploy & Release"
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build-deploy-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 21
+          server-id: nexus
+
+      - name: Configure Repo Credentials
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<EOF
+          <settings>
+            <servers>
+              <server>
+                <id>repsy</id>
+                <username>${{ secrets.DEPLOY_USER }}</username>
+                <password>${{ secrets.DEPLOY_KEY }}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+
+      - name: Extract Version
+        id: version
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Replace revision in pom.xml files
+        run: |
+          find . -name pom.xml -exec sed -i "s/\${revision}/${{ steps.version.outputs.version }}/g" {} \;
+
+      - name: Build Modules
+        run: |
+          mvn -B clean install -DskipTests
+          find . -name "*.jar" -ls  # Artefakt-Überprüfung
+
+      - name: Deploy API Module to Repo
+        run: |
+          # Deploy Parent POM (ohne Module)
+          mvn -B deploy -N -DskipTests
+          # Deploy Child-Modul
+          mvn -B deploy -pl ORMAPI-API -DskipTests
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: "v${{ steps.version.outputs.version }}"
+          name: "Release v${{ steps.version.outputs.version }}"
+          files: |
+            ORMAPI-API/target/ORMAPI-API-${{ steps.version.outputs.version }}.jar
+            ORMAPI-Paper/target/ORMAPI-Paper-${{ steps.version.outputs.version }}.jar
