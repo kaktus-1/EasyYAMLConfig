@@ -23,7 +23,11 @@ public class ConfigRegistry extends NameableRegistry<Config> {
 
                     String configName = config.getName();
 
-                    register(new Config(javaPlugin, configName));
+                    Config config1 = (Config) aClass
+                            .getDeclaredConstructor(JavaPlugin.class, String.class)
+                            .newInstance(javaPlugin, configName);
+
+                    register(config1);
                 } catch (Exception exception) {
                     throw new RuntimeException(exception);
                 }
