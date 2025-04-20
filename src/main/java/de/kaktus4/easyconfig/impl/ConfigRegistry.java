@@ -15,7 +15,7 @@ public class ConfigRegistry extends NameableRegistry<Config> {
                 .acceptPackages(packageToScan)
                 .scan()) {
 
-            scanResult.getClassesImplementing(Config.class).forEach(classInfo -> {
+            scanResult.getSubclasses(Config.class).forEach(classInfo -> {
                 try {
                     Class<?> aClass = classInfo.loadClass();
                     Constructor<?> declaredConstructor = aClass.getDeclaredConstructor();
